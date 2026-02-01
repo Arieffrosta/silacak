@@ -9,23 +9,21 @@ class GPSService {
     debugPrint("Module ID: $moduleId");
 
     try {
-      final path = "devices/$moduleId/gps";
+      final path = "devices/$moduleId/";
       debugPrint("Mengambil RTDB path: $path");
 
       final snapshot = await db.child(path).get();
 
-      if (!snapshot.exists) {
-        // debugPrint("❌ Data GPS tidak ditemukan pada RTDB!");
-        return null;
-      }
-
-      // debugPrint("📌 RTDB SNAPSHOT: ${snapshot.value}");
+      if (!snapshot.exists) return null;
 
       final data = Map<String, dynamic>.from(snapshot.value as Map);
 
-      // debugPrint("📌 GPS Data finalized: $data");
+      final lat = (data["latitude"] as num?)?.toDouble();
+      final lng = (data["longitude"] as num?)?.toDouble();
 
-      return {"latitude": data["latitude"], "longitude": data["longitude"]};
+      debugPrint("📌 GPS Data: lat=$lat, lng=$lng");
+
+      return {"latitude": lat, "longitude": lng};
     } catch (e) {
       debugPrint("❌ ERROR GET GPS: $e");
       return null;

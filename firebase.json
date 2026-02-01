@@ -1,1 +1,37 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"iot-esp32-lis3dh","appId":"1:1024768647705:android:f0309acaa33176fb16c088","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"iot-esp32-lis3dh","configurations":{"android":"1:1024768647705:android:f0309acaa33176fb16c088","ios":"1:1024768647705:ios:2faf25f75723e20616c088","web":"1:1024768647705:web:5707554652599e5e16c088"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "iot-esp32-lis3dh",
+          "appId": "1:1024768647705:android:f0309acaa33176fb16c088",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "iot-esp32-lis3dh",
+          "configurations": {
+            "android": "1:1024768647705:android:f0309acaa33176fb16c088",
+            "ios": "1:1024768647705:ios:2faf25f75723e20616c088",
+            "web": "1:1024768647705:web:5707554652599e5e16c088"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

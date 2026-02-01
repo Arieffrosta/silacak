@@ -1,3 +1,4 @@
+import 'package:app_silacak/services/local_notification_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -13,8 +14,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  /// PENTING: gunakan firebase_options.dart
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // 🔔 INIT LOCAL NOTIFICATION
+  await LocalNotificationService.init();
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
@@ -30,8 +33,11 @@ class MyApp extends StatelessWidget {
       title: 'App Silacak',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color.fromARGB(255, 4, 0, 255),
+        ),
       ),
+      
       home: const AuthWrapper(),
       onGenerateRoute: Routes.generateRoute,
     );

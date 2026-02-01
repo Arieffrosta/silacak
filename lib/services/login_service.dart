@@ -48,7 +48,7 @@ class LoginService {
                 'uid': user.uid,
                 'email': user.email,
                 'createdAt': FieldValue.serverTimestamp(),
-                'tokenFCM': null,
+                'fcmToken': null,
               });
             }
           }

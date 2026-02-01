@@ -72,8 +72,8 @@ class _HomePageState extends State<HomePage> {
 
       tempList.add({
         "moduleId": moduleId,
-        "latitude": gps?["latitude"],
-        "longitude": gps?["longitude"],
+        "latitude": (gps?["latitude"] as num?)?.toDouble(),
+        "longitude": (gps?["longitude"] as num?)?.toDouble(),
       });
     }
 

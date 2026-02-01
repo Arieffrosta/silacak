@@ -6,6 +6,8 @@ class ModuleService {
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
 
+  // =======================================================
+  // Fungsi tambahan: Tambah module dengan userId dari user yang login
   Future<void> addModule(ModuleModel module) async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) throw Exception('User belum login');
@@ -20,6 +22,8 @@ class ModuleService {
     });
   }
 
+  // =======================================================
+  // Fungsi tambahan: Ambil modules milik user yang login
   Future<List<Map<String, dynamic>>> getModulesByUser() async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) return [];
@@ -33,6 +37,8 @@ class ModuleService {
     return snapshot.docs.map((d) => d.data()).toList();
   }
 
+  // =======================================================
+  // Fungsi tambahan: Update module dengan validasi user
   Future<void> updateModule(ModuleModel module) async {
     await _firestore
         .collection('modules')
@@ -40,12 +46,14 @@ class ModuleService {
         .update(module.toMap());
   }
 
+  // =======================================================
+  // Fungsi tambahan: Hapus module dengan validasi user
   Future<void> deleteModule(String id) async {
     await _firestore.collection('modules').doc(id).delete();
   }
 
   // =======================================================
-  // 🔵 Fungsi tambahan: Ambil module berdasarkan ID + validasi user
+  // Fungsi tambahan: Ambil module berdasarkan ID + validasi user
   // =======================================================
   Future<Map<String, dynamic>?> getModuleById(String moduleId) async {
     final userId = _auth.currentUser?.uid;
