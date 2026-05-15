@@ -13,6 +13,7 @@ class AccountPage extends StatefulWidget {
 
 class _AccountPageState extends State<AccountPage> {
   final _accountService = AccountService();
+
   Map<String, dynamic>? userData;
 
   @override
@@ -23,6 +24,7 @@ class _AccountPageState extends State<AccountPage> {
 
   Future<void> _loadUserData() async {
     final data = await _accountService.getUserData();
+
     setState(() {
       userData = data;
     });
@@ -30,153 +32,402 @@ class _AccountPageState extends State<AccountPage> {
 
   @override
   Widget build(BuildContext context) {
+
+    final email =
+        FirebaseAuth.instance.currentUser?.email ??
+        'Tidak ada email';
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Akun Saya'),
-        centerTitle: true,
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
+      backgroundColor: const Color(0xFFF1F5F9),
+
       body:
           userData == null
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+
+              ? const Center(
+                  child: CircularProgressIndicator(),
+                )
+
+              : Column(
                   children: [
-                    // Foto profil
-                    CircleAvatar(
-                      radius: 45,
-                      backgroundColor: Colors.blue.shade100,
-                      child: const Icon(
-                        Icons.person,
-                        size: 60,
-                        color: Colors.blue,
+
+                    // =================================
+                    // HEADER (LEBIH KECIL)
+                    // =================================
+                    Container(
+                      width: double.infinity,
+
+                      padding: const EdgeInsets.fromLTRB(
+                        24,
+                        6,
+                        24,
+                        18,
                       ),
-                    ),
-                    const SizedBox(height: 16),
 
-                    // Email pengguna
-                    Text(
-                      FirebaseAuth.instance.currentUser?.email ??
-                          'Tidak ada email',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Color(0xFF0F172A),
+                            Color(0xFF1D4ED8),
+                          ],
+
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(24),
+                          bottomRight: Radius.circular(24),
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(height: 16),
-                    const Divider(),
+                      child: SafeArea(
+                        bottom: false,
 
-                    const SizedBox(height: 16),
-                    _buildProfileItem(
-                      icon: Icons.person_outline,
-                      label: "Nama Lengkap",
-                      value: userData?['name'] ?? '-',
-                    ),
-                    const SizedBox(height: 10),
-                    _buildProfileItem(
-                      icon: Icons.phone_android,
-                      label: "Nomor HP",
-                      value: userData?['phone'] ?? '-',
-                    ),
-                    const SizedBox(height: 10),
-                    _buildProfileItem(
-                      icon: Icons.home_outlined,
-                      label: "Alamat",
-                      value: userData?['address'] ?? '-',
-                    ),
-                    const SizedBox(height: 20),
-                    const Divider(),
-                    const SizedBox(height: 16),
+                        child: Column(
+                          children: [
 
-                    // Tombol Ubah Akun
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        _showEditAccountSheet(
-                          context,
-                          FirebaseAuth.instance.currentUser,
-                        );
-                      },
-                      icon: const Icon(Icons.edit),
-                      label: const Text("Ubah Akun"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 48),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
+                            // FOTO PROFIL
+                            Container(
+                              padding:
+                                  const EdgeInsets.all(4),
+
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+
+                                border: Border.all(
+                                  color: Colors.white24,
+                                  width: 2,
+                                ),
+                              ),
+
+                              child: CircleAvatar(
+                                radius: 34,
+
+                                backgroundColor:
+                                    Colors.white
+                                        .withOpacity(0.15),
+
+                                child: const Icon(
+                                  Icons.person,
+                                  size: 42,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 10),
+
+                            // EMAIL
+                            Text(
+                              email,
+
+                              textAlign:
+                                  TextAlign.center,
+
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight:
+                                    FontWeight.bold,
+                              ),
+                            ),
+
+                            const SizedBox(height: 3),
+
+                            const Text(
+                              "Akun Pengguna",
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
 
-                    // Tombol Logout
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        await FirebaseAuth.instance.signOut();
+                    // =================================
+                    // CONTENT
+                    // =================================
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding:
+                            const EdgeInsets.all(16),
 
-                        if (context.mounted) {
-                          Navigator.pushReplacementNamed(context, '/');
-                        }
-                      },
-                      icon: const Icon(Icons.logout),
-                      label: const Text("Keluar"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 48),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
+                        child: Column(
+                          children: [
+
+                            // =========================
+                            // CARD PROFIL
+                            // =========================
+                            Container(
+                              padding:
+                                  const EdgeInsets.all(18),
+
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+
+                                borderRadius:
+                                    BorderRadius.circular(
+                                        28),
+
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black
+                                        .withOpacity(
+                                            0.05),
+
+                                    blurRadius: 16,
+
+                                    offset:
+                                        const Offset(
+                                            0, 8),
+                                  ),
+                                ],
+                              ),
+
+                              child: Column(
+                                children: [
+
+                                  _buildProfileItem(
+                                    icon:
+                                        Icons.person_outline,
+
+                                    label:
+                                        "Nama Lengkap",
+
+                                    value:
+                                        userData?['name'] ??
+                                        '-',
+                                  ),
+
+                                  const SizedBox(
+                                      height: 14),
+
+                                  _buildProfileItem(
+                                    icon: Icons
+                                        .phone_android,
+
+                                    label:
+                                        "Nomor HP",
+
+                                    value:
+                                        userData?['phone'] ??
+                                        '-',
+                                  ),
+
+                                  const SizedBox(
+                                      height: 14),
+
+                                  _buildProfileItem(
+                                    icon: Icons
+                                        .home_outlined,
+
+                                    label:
+                                        "Alamat",
+
+                                    value:
+                                        userData?['address'] ??
+                                        '-',
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(height: 22),
+
+                            // =========================
+                            // BUTTON EDIT
+                            // =========================
+                            SizedBox(
+                              width: double.infinity,
+                              height: 54,
+
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  _showEditAccountSheet(
+                                    context,
+                                    FirebaseAuth
+                                        .instance
+                                        .currentUser,
+                                  );
+                                },
+
+                                icon: const Icon(
+                                  Icons.edit,
+                                ),
+
+                                label: const Text(
+                                  "Ubah Akun",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight:
+                                        FontWeight.w600,
+                                  ),
+                                ),
+
+                                style:
+                                    ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      const Color(
+                                          0xFF2563EB),
+
+                                  foregroundColor:
+                                      Colors.white,
+
+                                  elevation: 0,
+
+                                  shape:
+                                      RoundedRectangleBorder(
+                                    borderRadius:
+                                        BorderRadius
+                                            .circular(
+                                                18),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 14),
+
+                            // =========================
+                            // BUTTON LOGOUT
+                            // =========================
+                            SizedBox(
+                              width: double.infinity,
+                              height: 54,
+
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+
+                                  await FirebaseAuth
+                                      .instance
+                                      .signOut();
+
+                                  if (context.mounted) {
+                                    Navigator
+                                        .pushReplacementNamed(
+                                      context,
+                                      '/',
+                                    );
+                                  }
+                                },
+
+                                icon: const Icon(
+                                  Icons.logout,
+                                ),
+
+                                label: const Text(
+                                  "Keluar",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight:
+                                        FontWeight.w600,
+                                  ),
+                                ),
+
+                                style:
+                                    ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      Colors.red,
+
+                                  foregroundColor:
+                                      Colors.white,
+
+                                  elevation: 0,
+
+                                  shape:
+                                      RoundedRectangleBorder(
+                                    borderRadius:
+                                        BorderRadius
+                                            .circular(
+                                                18),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
-              ),
 
-      bottomNavigationBar: const BottomTabbar(currentIndex: 3),
+      bottomNavigationBar:
+          const BottomTabbar(currentIndex: 4),
     );
   }
 
-  /// 🔹 Widget untuk menampilkan item profil
+  // =================================
+  // PROFILE ITEM
+  // =================================
   Widget _buildProfileItem({
     required IconData icon,
     required String label,
     required String value,
   }) {
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      padding: const EdgeInsets.all(18),
+
       decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 255, 255, 255),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        color: const Color(0xFFF8FAFC),
+
+        borderRadius:
+            BorderRadius.circular(20),
       ),
+
       child: Row(
         children: [
-          Icon(icon, color: Colors.blue),
-          const SizedBox(width: 12),
+
+          Container(
+            padding: const EdgeInsets.all(14),
+
+            decoration: BoxDecoration(
+              color:
+                  const Color(0xFFE0E7FF),
+
+              borderRadius:
+                  BorderRadius.circular(16),
+            ),
+
+            child: Icon(
+              icon,
+              color: const Color(0xFF2563EB),
+            ),
+          ),
+
+          const SizedBox(width: 16),
+
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
               children: [
+
                 Text(
                   label,
+
                   style: const TextStyle(
                     fontSize: 13,
                     color: Colors.grey,
-                    fontWeight: FontWeight.w500,
+                    fontWeight:
+                        FontWeight.w500,
                   ),
                 ),
+
+                const SizedBox(height: 4),
+
                 Text(
-                  value.isNotEmpty ? value : '-',
+                  value.isNotEmpty
+                      ? value
+                      : '-',
+
                   style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                    fontWeight:
+                        FontWeight.bold,
                   ),
                 ),
               ],
@@ -187,148 +438,274 @@ class _AccountPageState extends State<AccountPage> {
     );
   }
 
-  void _showEditAccountSheet(BuildContext context, User? user) {
-    final nameController = TextEditingController(
-      text: userData?['name'] ?? user?.displayName ?? '',
+  // =================================
+  // EDIT ACCOUNT SHEET
+  // =================================
+  void _showEditAccountSheet(
+    BuildContext context,
+    User? user,
+  ) {
+
+    final nameController =
+        TextEditingController(
+      text:
+          userData?['name'] ??
+          user?.displayName ??
+          '',
     );
-    final phoneController = TextEditingController(
+
+    final phoneController =
+        TextEditingController(
       text: userData?['phone'] ?? '',
     );
-    final addressController = TextEditingController(
+
+    final addressController =
+        TextEditingController(
       text: userData?['address'] ?? '',
     );
-    final emailController = TextEditingController(text: user?.email ?? '');
+
+    final emailController =
+        TextEditingController(
+      text: user?.email ?? '',
+    );
 
     showModalBottomSheet(
       context: context,
+
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+
+      backgroundColor: Colors.white,
+
+      shape:
+          const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(
+          top: Radius.circular(30),
+        ),
       ),
+
       builder: (context) {
+
         return Padding(
           padding: EdgeInsets.only(
             left: 20,
             right: 20,
             top: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+
+            bottom:
+                MediaQuery.of(context)
+                    .viewInsets
+                    .bottom +
+                20,
           ),
+
           child: SingleChildScrollView(
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize:
+                  MainAxisSize.min,
+
               children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 5,
-                    margin: const EdgeInsets.only(bottom: 15),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(5),
-                    ),
+
+                Container(
+                  width: 60,
+                  height: 6,
+
+                  decoration: BoxDecoration(
+                    color:
+                        Colors.grey.shade300,
+
+                    borderRadius:
+                        BorderRadius.circular(
+                            20),
                   ),
                 ),
+
+                const SizedBox(height: 20),
+
                 const Text(
                   "Ubah Akun",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 20),
-
-                // Nama
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Nama Lengkap',
-                    prefixIcon: const Icon(Icons.person_outline),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight:
+                        FontWeight.bold,
                   ),
                 ),
+
+                const SizedBox(height: 24),
+
+                _modernField(
+                  controller:
+                      nameController,
+
+                  label:
+                      "Nama Lengkap",
+
+                  icon:
+                      Icons.person_outline,
+                ),
+
                 const SizedBox(height: 16),
 
-                // Email (readonly)
-                TextField(
-                  controller: emailController,
+                _modernField(
+                  controller:
+                      emailController,
+
+                  label: "Email",
+
+                  icon:
+                      Icons.email_outlined,
+
                   readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: const Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
                 ),
+
                 const SizedBox(height: 16),
 
-                // No HP
-                TextField(
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: 'Nomor HP',
-                    prefixIcon: const Icon(Icons.phone_android),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                _modernField(
+                  controller:
+                      phoneController,
+
+                  label:
+                      "Nomor HP",
+
+                  icon: Icons
+                      .phone_android,
                 ),
+
                 const SizedBox(height: 16),
 
-                // Alamat
-                TextField(
-                  controller: addressController,
-                  decoration: InputDecoration(
-                    labelText: 'Alamat',
-                    prefixIcon: const Icon(Icons.home_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                _modernField(
+                  controller:
+                      addressController,
+
+                  label: "Alamat",
+
+                  icon:
+                      Icons.home_outlined,
+
                   maxLines: 2,
                 ),
-                const SizedBox(height: 20),
 
-                // Tombol Simpan
+                const SizedBox(height: 24),
+
                 SizedBox(
                   width: double.infinity,
+                  height: 56,
+
                   child: ElevatedButton.icon(
                     onPressed: () async {
-                      await _accountService.updateUserProfile(
-                        name: nameController.text.trim(),
-                        phone: phoneController.text.trim(),
-                        address: addressController.text.trim(),
+
+                      await _accountService
+                          .updateUserProfile(
+                        name:
+                            nameController
+                                .text
+                                .trim(),
+
+                        phone:
+                            phoneController
+                                .text
+                                .trim(),
+
+                        address:
+                            addressController
+                                .text
+                                .trim(),
                       );
 
                       if (context.mounted) {
-                        Navigator.pop(context);
+
+                        Navigator.pop(
+                            context);
+
                         SuccessDialog.show(
                           context,
-                          message: 'Profil berhasil diperbarui!',
+
+                          message:
+                              'Profil berhasil diperbarui!',
                         );
+
                         _loadUserData();
                       }
                     },
-                    icon: const Icon(Icons.save, color: Colors.white),
+
+                    icon:
+                        const Icon(Icons.save),
+
                     label: const Text(
                       "Simpan Perubahan",
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight:
+                            FontWeight.w600,
+                      ),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
+
+                    style:
+                        ElevatedButton.styleFrom(
+                      backgroundColor:
+                          const Color(
+                              0xFF2563EB),
+
+                      foregroundColor:
+                          Colors.white,
+
+                      elevation: 0,
+
+                      shape:
+                          RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(
+                                18),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 25),
+
+                const SizedBox(height: 20),
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  // =================================
+  // MODERN FIELD
+  // =================================
+  Widget _modernField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool readOnly = false,
+    int maxLines = 1,
+  }) {
+
+    return TextField(
+      controller: controller,
+
+      readOnly: readOnly,
+
+      maxLines: maxLines,
+
+      decoration: InputDecoration(
+        labelText: label,
+
+        prefixIcon: Icon(icon),
+
+        filled: true,
+
+        fillColor:
+            const Color(0xFFF8FAFC),
+
+        border: OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(
+                  18),
+
+          borderSide: BorderSide.none,
+        ),
+      ),
     );
   }
 }

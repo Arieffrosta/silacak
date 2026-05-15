@@ -1,38 +1,48 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:app_silacak/routes/routes.dart';
 import 'package:app_silacak/services/login_service.dart';
-import 'package:app_silacak/services/notification_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _RegisterPageState extends State<RegisterPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
 
   bool isLoading = false;
   bool isObscure = true;
+  bool isObscureConfirm = true;
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleRegister() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
+    final confirmPassword = confirmPasswordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
+    /// 🔍 VALIDASI
+    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Email dan password wajib diisi")),
+        const SnackBar(content: Text("Semua field wajib diisi")),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Password tidak sama")),
       );
       return;
     }
 
     setState(() => isLoading = true);
 
-    final success = await LoginService().login(
+    final success = await LoginService().register(
       email,
       password,
       context,
@@ -41,15 +51,28 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => isLoading = false);
 
     if (success && mounted) {
-      await Future.delayed(const Duration(milliseconds: 500));
 
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await NotificationService().initNotifications(context);
-      }
+      /// 🔥 WAJIB: LOGOUT BIAR TIDAK AUTO MASUK HOME
+      await FirebaseAuth.instance.signOut();
 
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, Routes.home);
+      /// 🧹 CLEAR INPUT
+      emailController.clear();
+      passwordController.clear();
+      confirmPasswordController.clear();
+
+      /// 🔔 NOTIFIKASI
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Registrasi berhasil, silakan login"),
+        ),
+      );
+
+      /// 🚀 PINDAH KE LOGIN (BERSIHKAN STACK)
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        Routes.login,
+        (route) => false,
+      );
     }
   }
 
@@ -65,24 +88,23 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 50),
 
-              /// 🔵 LOGO
+              /// 🔵 HEADER
               FadeInDown(
                 duration: const Duration(milliseconds: 800),
                 child: Column(
                   children: const [
-                    Icon(Icons.two_wheeler, size: 70, color: Colors.blue),
+                    Icon(Icons.person_add, size: 70, color: Colors.blue),
                     SizedBox(height: 10),
                     Text(
-                      "SiLacak",
+                      "Buat Akun",
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
                       ),
                     ),
                     SizedBox(height: 5),
                     Text(
-                      "Pantau kondisi & lokasi pengendara",
+                      "Daftar untuk mulai menggunakan SiLacak",
                       style: TextStyle(color: Colors.grey),
                     ),
                   ],
@@ -91,7 +113,7 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 40),
 
-              /// 🔹 CARD LOGIN
+              /// 🔹 CARD FORM
               FadeInUp(
                 duration: const Duration(milliseconds: 900),
                 child: Container(
@@ -156,31 +178,44 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
 
-                      /// 🔥 LUPA PASSWORD
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(
-                              context,
-                              Routes.forgotPassword,
-                            );
-                          },
-                          child: const Text(
-                            "Lupa Password?",
-                            style: TextStyle(color: Colors.blue),
+                      const SizedBox(height: 20),
+
+                      /// CONFIRM PASSWORD
+                      TextField(
+                        controller: confirmPasswordController,
+                        obscureText: isObscureConfirm,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.lock_outline, color: Colors.blue),
+                          hintText: "Konfirmasi Password",
+                          filled: true,
+                          fillColor: const Color(0xFFF1F4F8),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              isObscureConfirm
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                isObscureConfirm = !isObscureConfirm;
+                              });
+                            },
                           ),
                         ),
                       ),
 
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 25),
 
-                      /// 🔐 BUTTON LOGIN
+                      /// BUTTON REGISTER
                       SizedBox(
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: isLoading ? null : _handleLogin,
+                          onPressed: isLoading ? null : _handleRegister,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             shape: RoundedRectangleBorder(
@@ -188,45 +223,27 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           child: isLoading
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white,
-                                )
-                              : const Text("Login"),
+                              ? const CircularProgressIndicator(color: Colors.white)
+                              : const Text("Daftar"),
                         ),
                       ),
 
                       const SizedBox(height: 10),
 
-                      /// 🆕 REGISTER NAVIGATION (SUDAH AKTIF)
+                      /// BACK TO LOGIN
                       TextButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, Routes.register);
+                          Navigator.pushReplacementNamed(
+                            context,
+                            Routes.login,
+                          );
                         },
                         child: const Text(
-                          "Belum punya akun? Daftar",
+                          "Sudah punya akun? Login",
                           style: TextStyle(color: Colors.grey),
                         ),
                       ),
                     ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              /// INFO
-              FadeInUp(
-                duration: const Duration(milliseconds: 1100),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Text(
-                    "Sistem akan mengirim notifikasi saat terdeteksi kecelakaan",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.green),
                   ),
                 ),
               ),
