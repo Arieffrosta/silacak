@@ -199,7 +199,7 @@ exports.onEventDetected = functions
 exports.syncTrackingToFirestore = functions
   .region("asia-southeast1")
   .database.ref("/devices/{deviceId}")
-  .onUpdate(async (change, context) => {
+  .onWrite(async (change, context) => {
     try {
       const deviceId = context.params.deviceId;
 
@@ -207,55 +207,69 @@ exports.syncTrackingToFirestore = functions
 
       if (!data) return null;
 
-      const lat = Number(data.latitude ?? 0);
-      const lng = Number(data.longitude ?? 0);
+      const lat = Number(data.latitude || 0);
+      const lng = Number(data.longitude || 0);
 
-      /* =====================================================
-         ❌ GPS BELUM VALID
-      ===================================================== */
-      if (lat === 0 || lng === 0) {
-        console.log("⏳ GPS belum valid");
+      if (
+        lat === 0 ||
+        lng === 0 ||
+        isNaN(lat) ||
+        isNaN(lng)
+      ) {
+        console.log("GPS belum valid");
         return null;
       }
 
-      const now = Date.now();
+      // ============================
+      // TANGGAL HARI INI
+      // ============================
 
-      /* =====================================================
-         🔒 ANTI SPAM TRACKING 5 DETIK
-      ===================================================== */
-      const lastRef = rtdb.ref(`/devices/${deviceId}/lastTrack`);
+      const now = new Date();
 
-      const snap = await lastRef.once("value");
+      const dateKey =
+        `${now.getFullYear()}-` +
+        `${String(now.getMonth() + 1).padStart(2, "0")}-` +
+        `${String(now.getDate()).padStart(2, "0")}`;
 
-      const lastTime = snap.exists() ? snap.val() : 0;
+      const db = admin.firestore();
 
-      if (now - lastTime < 5000) {
-        console.log("⏳ Skip tracking");
-        return null;
-      }
+      // ============================
+      // SESSION HARIAN
+      // ============================
 
-      await lastRef.set(now);
-
-      /* =====================================================
-         ✅ SIMPAN TRACKING
-      ===================================================== */
-      await db
+      const sessionRef = db
         .collection("tracks")
         .doc(deviceId)
+        .collection("sessions")
+        .doc(dateKey);
+
+      await sessionRef.set({
+        deviceId,
+        date: dateKey,
+        updatedAt:
+          admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+
+      // ============================
+      // SIMPAN TITIK TRACK
+      // ============================
+
+      await sessionRef
         .collection("points")
         .add({
           lat,
           lng,
-          speed: Number(data.speed ?? 0),
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          timestamp:
+            admin.firestore.FieldValue.serverTimestamp(),
         });
 
-      console.log("✅ Tracking masuk Firestore");
+      console.log(
+        `Track tersimpan: ${deviceId} ${lat},${lng}`
+      );
 
       return null;
     } catch (error) {
-      console.error("❌ ERROR TRACKING:", error);
-
+      console.error(error);
       return null;
     }
   });

@@ -1,542 +1,635 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:app_silacak/widgets/bottom_tabbar.dart';
 
-class HistoryPage extends StatelessWidget {
+class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
 
-  // ================================
-  // OPEN GOOGLE MAP
-  // ================================
-  void openMap(double lat, double lng) async {
-    final url =
-        "https://www.google.com/maps/search/?api=1&query=$lat,$lng";
+  @override
+  State<HistoryPage> createState() => _HistoryPageState();
+}
 
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
-    }
-  }
-
-  // ================================
-  // DELETE ALL HISTORY
-  // ================================
-  Future<void> deleteAllHistory(BuildContext context) async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User belum login")),
-      );
-      return;
-    }
-
-    try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-
-      final functions = FirebaseFunctions.instanceFor(
-        region: 'asia-southeast1',
-      );
-
-      final callable = functions.httpsCallable(
-        'deleteAllAccidents',
-      );
-
-      await callable.call({
-        "userId": user.uid,
-      });
-
-      Navigator.pop(context);
-
-      if (!context.mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("✅ Semua riwayat berhasil dihapus"),
-        ),
-      );
-    } catch (e) {
-      Navigator.pop(context);
-
-      if (!context.mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("❌ Gagal hapus riwayat"),
-        ),
-      );
-    }
-  }
-
-  // ================================
-  // CONFIRM DELETE
-  // ================================
-  void confirmDelete(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
-        ),
-        title: const Text("Hapus Semua Riwayat"),
-        content: const Text(
-          "Yakin ingin menghapus semua riwayat kecelakaan?",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Batal"),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              await deleteAllHistory(context);
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: const Text("Hapus"),
-          ),
-        ],
-      ),
-    );
-  }
+class _HistoryPageState extends State<HistoryPage> {
+  final user = FirebaseAuth.instance.currentUser;
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: const Color(0xFFF5F7FB),
 
-      // ================================
-      // MODERN HEADER
-      // ================================
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(100),
+      body: SafeArea(
+        child: Column(
+          children: [
 
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF0F172A),
-                Color(0xFF1D4ED8),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+// ================= HEADER =================
+Container(
+  width: double.infinity,
+  padding: const EdgeInsets.fromLTRB(
+    20,
+    14,
+    20,
+    16,
+  ),
 
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(28),
-              bottomRight: Radius.circular(28),
-            ),
-          ),
+  decoration: const BoxDecoration(
+    gradient: LinearGradient(
+      colors: [
+        Color(0xFF0F172A),
+        Color(0xFF2563EB),
+      ],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
 
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-              ),
+    borderRadius: BorderRadius.only(
+      bottomLeft: Radius.circular(24),
+      bottomRight: Radius.circular(24),
+    ),
+  ),
 
-              child: Row(
-                children: [
+  child: Row(
+    children: [
 
-                  // ====================
-                  // TITLE
-                  // ====================
-                  const Expanded(
-                    child: Column(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
+      Container(
+        padding: const EdgeInsets.all(12),
 
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+        decoration: BoxDecoration(
+          color: Colors.white24,
+          borderRadius:
+              BorderRadius.circular(16),
+        ),
 
-                      children: [
-
-                        Text(
-                          "Riwayat Kecelakaan",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-
-                        SizedBox(height: 4),
-
-                        Text(
-                          "Data histori kecelakaan kendaraan",
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ====================
-                  // DELETE BUTTON
-                  // ====================
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius:
-                          BorderRadius.circular(16),
-                    ),
-
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.delete_outline_rounded,
-                        color: Colors.white,
-                      ),
-
-                      onPressed: () =>
-                          confirmDelete(context),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        child: const Icon(
+          Icons.history_rounded,
+          color: Colors.white,
+          size: 26,
         ),
       ),
 
-      // ================================
-      // BODY
-      // ================================
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('accidents')
-            .where('userId', isEqualTo: user?.uid)
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
+      const SizedBox(width: 14),
 
-        builder: (context, snapshot) {
+      const Expanded(
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
 
-          // ERROR
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                "❌ Error: ${snapshot.error}",
+          children: [
+
+            Text(
+              "Riwayat Kecelakaan",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight:
+                    FontWeight.bold,
               ),
-            );
-          }
+            ),
 
-          // LOADING
-          if (!snapshot.hasData) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+            SizedBox(height: 4),
 
-          final docs = snapshot.data!.docs;
-
-          // EMPTY
-          if (docs.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment:
-                    MainAxisAlignment.center,
-
-                children: [
-
-                  Icon(
-                    Icons.history_toggle_off_rounded,
-                    size: 80,
-                    color: Colors.grey,
-                  ),
-
-                  SizedBox(height: 14),
-
-                  Text(
-                    "Belum ada riwayat kecelakaan",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
+            Text(
+              "Data histori kecelakaan kendaraan",
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
               ),
-            );
-          }
+            ),
+          ],
+        ),
+      ),
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(18),
-            itemCount: docs.length,
+      // ================= TOMBOL HAPUS =================
+      GestureDetector(
+        onTap: () async {
 
-            itemBuilder: (context, index) {
+          final confirm =
+              await showDialog(
+            context: context,
 
-              final data =
-                  docs[index].data() as Map<String, dynamic>;
-
-              final lat = (data['lat'] ?? 0).toDouble();
-              final lng = (data['lng'] ?? 0).toDouble();
-              final impact = data['magnitude'] ?? 0;
-
-              final timestamp = data['createdAt'];
-
-              DateTime date = DateTime.now();
-
-              if (timestamp is Timestamp) {
-                date = timestamp.toDate();
-              }
-
-              final gpsActive = lat != 0 && lng != 0;
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 20),
-
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+            builder: (context) {
+              return AlertDialog(
+                title: const Text(
+                  "Hapus Riwayat",
                 ),
 
-                child: Card(
-                  elevation: 0,
-                  color: Colors.white,
+                content: const Text(
+                  "Yakin ingin menghapus semua riwayat?",
+                ),
 
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
+                actions: [
+
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(
+                        context,
+                        false,
+                      );
+                    },
+
+                    child:
+                        const Text("Batal"),
                   ),
 
-                  child: Padding(
-                    padding: const EdgeInsets.all(22),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(
+                        context,
+                        true,
+                      );
+                    },
 
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                    child:
+                        const Text("Hapus"),
+                  ),
+                ],
+              );
+            },
+          );
 
-                      children: [
+          if (confirm == true) {
 
-                        // ====================
-                        // HEADER CARD
-                        // ====================
-                        Row(
+            final snapshot =
+                await FirebaseFirestore
+                    .instance
+                    .collection('history')
+                    .where(
+                      'userId',
+                      isEqualTo:
+                          user?.uid,
+                    )
+                    .get();
+
+            for (var doc
+                in snapshot.docs) {
+              await doc.reference
+                  .delete();
+            }
+          }
+        },
+
+        child: Container(
+          padding:
+              const EdgeInsets.all(14),
+
+          decoration: BoxDecoration(
+            color: Colors.white24,
+            borderRadius:
+                BorderRadius.circular(
+                    18),
+          ),
+
+          child: const Icon(
+            Icons.delete_outline,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
+      ),
+    ],
+  ),
+),
+            // ================= HISTORY =================
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('history')
+                    .where(
+                      'userId',
+                      isEqualTo: user?.uid,
+                    )
+                    .orderBy(
+                      'createdAt',
+                      descending: true,
+                    )
+                    .snapshots(),
+
+                builder: (context, snapshot) {
+
+                  // LOADING
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+
+                  // ERROR
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Text(
+                          "Error: ${snapshot.error}",
+                        ),
+                      ),
+                    );
+                  }
+
+                  final docs = snapshot.data?.docs ?? [];
+
+                  // EMPTY
+                  if (docs.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment:
+                            MainAxisAlignment.center,
+                        children: [
+
+                          Icon(
+                            Icons.history_toggle_off,
+                            size: 90,
+                            color: Colors.grey.shade400,
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          Text(
+                            "Belum Ada Riwayat",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+
+                          const SizedBox(height: 6),
+
+                          Text(
+                            "Data kecelakaan akan tampil di sini",
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: docs.length,
+
+                    itemBuilder: (context, index) {
+
+                      final data =
+                          docs[index].data()
+                              as Map<String, dynamic>;
+
+                      final latitude =
+                          (data['latitude'] ?? 0)
+                              .toDouble();
+
+                      final longitude =
+                          (data['longitude'] ?? 0)
+                              .toDouble();
+
+                      final benturan =
+                          (data['magnitude'] ?? 0)
+                              .toDouble();
+
+                      final status =
+                          data['status'] ?? "recorded";
+
+                      final eventTime =
+                          data['eventTime'] ??
+                              "Tidak ada waktu";
+
+                      final bool gpsAktif =
+                          latitude != 0 &&
+                          longitude != 0;
+
+                      return Container(
+                        margin: const EdgeInsets.only(
+                          bottom: 18,
+                        ),
+
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius:
+                              BorderRadius.circular(26),
+
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 12,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+
+                        child: Column(
                           children: [
 
+                            // ================= TOP =================
                             Container(
-                              padding: const EdgeInsets.all(14),
+                              padding:
+                                  const EdgeInsets.all(18),
 
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade50,
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Color(0xFF0F172A),
+                                    Color(0xFF2563EB),
+                                  ],
+                                ),
+
                                 borderRadius:
-                                    BorderRadius.circular(18),
+                                    BorderRadius.only(
+                                  topLeft:
+                                      Radius.circular(26),
+                                  topRight:
+                                      Radius.circular(26),
+                                ),
                               ),
 
-                              child: const Icon(
-                                Icons.warning_amber_rounded,
-                                color: Colors.red,
-                                size: 30,
-                              ),
-                            ),
-
-                            const SizedBox(width: 14),
-
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-
+                              child: Row(
                                 children: [
 
-                                  const Text(
-                                    "Kecelakaan Terdeteksi",
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight:
-                                          FontWeight.bold,
+                                  Container(
+                                    padding:
+                                        const EdgeInsets
+                                            .all(12),
+
+                                    decoration:
+                                        BoxDecoration(
+                                      color:
+                                          Colors.white24,
+
+                                      borderRadius:
+                                          BorderRadius
+                                              .circular(
+                                                  16),
+                                    ),
+
+                                    child: const Icon(
+                                      Icons.warning_amber,
+                                      color:
+                                          Colors.white,
+                                      size: 28,
                                     ),
                                   ),
 
-                                  const SizedBox(height: 4),
+                                  const SizedBox(width: 14),
 
-                                  Text(
-                                    "${date.day}/${date.month}/${date.year} "
-                                    "${date.hour}:${date.minute.toString().padLeft(2, '0')}",
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment
+                                              .start,
 
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 13,
+                                      children: [
+
+                                        const Text(
+                                          "Deteksi Kecelakaan",
+                                          style:
+                                              TextStyle(
+                                            color: Colors
+                                                .white,
+                                            fontSize: 18,
+                                            fontWeight:
+                                                FontWeight
+                                                    .bold,
+                                          ),
+                                        ),
+
+                                        const SizedBox(
+                                            height: 4),
+
+                                        Text(
+                                          eventTime,
+                                          style:
+                                              const TextStyle(
+                                            color: Colors
+                                                .white70,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  Container(
+                                    padding:
+                                        const EdgeInsets
+                                            .symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+
+                                    decoration:
+                                        BoxDecoration(
+                                      color:
+                                          Colors.redAccent,
+                                      borderRadius:
+                                          BorderRadius
+                                              .circular(
+                                                  20),
+                                    ),
+
+                                    child: Text(
+                                      status
+                                          .toUpperCase(),
+                                      style:
+                                          const TextStyle(
+                                        color:
+                                            Colors.white,
+                                        fontWeight:
+                                            FontWeight
+                                                .bold,
+                                        fontSize: 11,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
 
-                            Container(
+                            // ================= CONTENT =================
+                            Padding(
                               padding:
-                                  const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 7,
-                              ),
+                                  const EdgeInsets.all(
+                                      18),
 
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade50,
-                                borderRadius:
-                                    BorderRadius.circular(20),
-                              ),
+                              child: gpsAktif
 
-                              child: const Text(
-                                "DARURAT",
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontWeight:
-                                      FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // ====================
-                        // INFO BOX
-                        // ====================
-                        Container(
-                          padding: const EdgeInsets.all(18),
-
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFFF8FAFC),
-                                Color(0xFFEFF6FF),
-                              ],
-                            ),
-
-                            borderRadius:
-                                BorderRadius.circular(20),
-                          ),
-
-                          child: Column(
-                            children: [
-
-                              _buildInfoRow(
-                                Icons.speed,
-                                "Benturan",
-                                "$impact G",
-                              ),
-
-                              const SizedBox(height: 16),
-
-                              gpsActive
-                                  ? _buildInfoRow(
-                                      Icons.location_on,
-                                      "Lokasi",
-                                      "$lat, $lng",
-                                    )
-                                  : Row(
+                                  // ================= GPS AKTIF =================
+                                  ? Column(
                                       children: [
 
-                                        Container(
-                                          padding:
-                                              const EdgeInsets.all(
-                                                  10),
-
-                                          decoration: BoxDecoration(
-                                            color:
-                                                Colors.orange.shade50,
-
-                                            borderRadius:
-                                                BorderRadius.circular(
-                                                    14),
-                                          ),
-
-                                          child: const Icon(
-                                            Icons.gps_off,
-                                            color: Colors.orange,
-                                          ),
+                                        _buildInfoTile(
+                                          Icons.speed_rounded,
+                                          "Benturan",
+                                          "${benturan.toStringAsFixed(2)} G",
                                         ),
 
-                                        const SizedBox(width: 14),
+                                        const SizedBox(
+                                            height: 14),
 
-                                        const Expanded(
-                                          child: Text(
-                                            "GPS tidak aktif",
-                                            style: TextStyle(
-                                              color: Colors.orange,
-                                              fontWeight:
-                                                  FontWeight.w600,
+                                        _buildInfoTile(
+                                          Icons.location_on,
+                                          "Latitude",
+                                          latitude.toString(),
+                                        ),
+
+                                        const SizedBox(
+                                            height: 14),
+
+                                        _buildInfoTile(
+                                          Icons.map,
+                                          "Longitude",
+                                          longitude.toString(),
+                                        ),
+
+                                        const SizedBox(
+                                            height: 18),
+
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius
+                                                  .circular(
+                                                      20),
+
+                                          child: SizedBox(
+                                            height: 230,
+
+                                            child: GoogleMap(
+                                              initialCameraPosition:
+                                                  CameraPosition(
+                                                target:
+                                                    LatLng(
+                                                  latitude,
+                                                  longitude,
+                                                ),
+                                                zoom: 15,
+                                              ),
+
+                                              markers: {
+                                                Marker(
+                                                  markerId:
+                                                      const MarkerId(
+                                                          'lokasi'),
+
+                                                  position:
+                                                      LatLng(
+                                                    latitude,
+                                                    longitude,
+                                                  ),
+                                                ),
+                                              },
+
+                                              zoomControlsEnabled:
+                                                  false,
+
+                                              myLocationButtonEnabled:
+                                                  false,
                                             ),
                                           ),
                                         ),
                                       ],
+                                    )
+
+                                  // ================= GPS MATI =================
+                                  : Column(
+                                      children: [
+
+                                        _buildInfoTile(
+                                          Icons.speed_rounded,
+                                          "Benturan",
+                                          "${benturan.toStringAsFixed(2)} G",
+                                        ),
+
+                                        const SizedBox(
+                                            height: 14),
+
+                                        Container(
+                                          width:
+                                              double.infinity,
+
+                                          padding:
+                                              const EdgeInsets
+                                                  .all(
+                                                      18),
+
+                                          decoration:
+                                              BoxDecoration(
+                                            color:
+                                                const Color(
+                                                    0xFFFFF7ED),
+
+                                            borderRadius:
+                                                BorderRadius
+                                                    .circular(
+                                                        18),
+                                          ),
+
+                                          child: const Row(
+                                            children: [
+
+                                              Icon(
+                                                Icons
+                                                    .gps_off,
+                                                color: Colors
+                                                    .orange,
+                                                size: 30,
+                                              ),
+
+                                              SizedBox(
+                                                  width:
+                                                      12),
+
+                                              Expanded(
+                                                child:
+                                                    Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment
+                                                          .start,
+
+                                                  children: [
+
+                                                    Text(
+                                                      "GPS Tidak Aktif",
+                                                      style:
+                                                          TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize:
+                                                            15,
+                                                      ),
+                                                    ),
+
+                                                    SizedBox(
+                                                        height:
+                                                            4),
+
+                                                    Text(
+                                                      "Lokasi kejadian tidak tersedia",
+                                                      style:
+                                                          TextStyle(
+                                                        color:
+                                                            Colors.black54,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 22),
-
-                        // ====================
-                        // BUTTON
-                        // ====================
-                        if (gpsActive)
-                          SizedBox(
-                            width: double.infinity,
-                            height: 55,
-
-                            child: ElevatedButton.icon(
-                              onPressed: () =>
-                                  openMap(lat, lng),
-
-                              style:
-                                  ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    const Color(0xFF2563EB),
-
-                                foregroundColor:
-                                    Colors.white,
-
-                                elevation: 0,
-
-                                shape:
-                                    RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(18),
-                                ),
-                              ),
-
-                              icon: const Icon(
-                                Icons.map_outlined,
-                              ),
-
-                              label: const Text(
-                                "Lihat Lokasi di Google Maps",
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight:
-                                      FontWeight.w600,
-                                ),
-                              ),
                             ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
 
       bottomNavigationBar:
@@ -544,61 +637,69 @@ class HistoryPage extends StatelessWidget {
     );
   }
 
-  // ================================
-  // INFO ROW
-  // ================================
-  Widget _buildInfoRow(
+  // ================= INFO TILE =================
+  Widget _buildInfoTile(
     IconData icon,
     String title,
     String value,
   ) {
-    return Row(
-      children: [
+    return Container(
+      padding: const EdgeInsets.all(16),
 
-        Container(
-          padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+      ),
 
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
+      child: Row(
+        children: [
+
+          Container(
+            padding: const EdgeInsets.all(12),
+
+            decoration: BoxDecoration(
+              color: const Color(0x1A2563EB),
+              borderRadius:
+                  BorderRadius.circular(14),
+            ),
+
+            child: Icon(
+              icon,
+              color: const Color(0xFF2563EB),
+            ),
           ),
 
-          child: Icon(
-            icon,
-            color: const Color(0xFF2563EB),
-          ),
-        ),
+          const SizedBox(width: 14),
 
-        const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
 
-        Expanded(
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+              children: [
 
-            children: [
-
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontSize: 13,
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 3),
+                const SizedBox(height: 4),
 
-              Text(
-                value,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
