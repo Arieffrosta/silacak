@@ -59,20 +59,25 @@ class _TrackingPageState extends State<TrackingPage> {
       .collection('sessions')
       .get();
 
-        if (!mounted) return;
+  if (!mounted) return;
 
-  if (snapshot.docs.isNotEmpty) {
-    final dates =
-        snapshot.docs.map((e) => e.id).toList();
-
-    dates.sort(
-      (a, b) => b.compareTo(a),
-    );
-
+  if (snapshot.docs.isEmpty) {
     setState(() {
-      selectedDate = dates.first;
+      selectedDate = null;
     });
+    return;
   }
+
+  final dates =
+      snapshot.docs.map((e) => e.id).toList();
+
+  dates.sort(
+    (a, b) => b.compareTo(a),
+  );
+
+  setState(() {
+    selectedDate = dates.first;
+  });
 }
 
 @override
@@ -85,13 +90,15 @@ void initState() {
   @override
   Widget build(BuildContext context) {
 
-  if (selectedDate == null) {
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
+ if (selectedDate == null) {
+  return Scaffold(
+    body: Center(
+      child: Text(
+        "Belum ada riwayat tracking",
       ),
-    );
-  }
+    ),
+  );
+}
 
   return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -451,35 +458,99 @@ return Column(
                 return const SizedBox();
               }
 
-              return DropdownButtonFormField<
-                  String>(
-                value: dates.contains(selectedDate)
-    ? selectedDate
-    : dates.first,
-                decoration:
-                    const InputDecoration(
-                  labelText:
-                      "Riwayat Tracking",
-                  border:
-                      OutlineInputBorder(),
-                ),
-                items: dates
-                    .map(
-                      (date) =>
-                          DropdownMenuItem(
-                        value: date,
-                        child: Text(date),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value == null) return;
+              return InkWell(
+  borderRadius: BorderRadius.circular(12),
 
-                  setState(() {
-                    selectedDate = value;
-                  });
+  onTap: () async {
+
+    final selected =
+        await showModalBottomSheet<String>(
+      context: context,
+
+      builder: (context) {
+
+        return SafeArea(
+          child: ListView.builder(
+            itemCount: dates.length,
+
+            itemBuilder: (context, index) {
+
+              final date = dates[index];
+
+              return ListTile(
+                title: Text(date),
+
+                trailing:
+                    date == selectedDate
+                        ? const Icon(
+                            Icons.check,
+                            color: Colors.green,
+                          )
+                        : null,
+
+                onTap: () {
+                  Navigator.pop(
+                    context,
+                    date,
+                  );
                 },
               );
+            },
+          ),
+        );
+      },
+    );
+
+    if (selected != null) {
+      setState(() {
+        selectedDate = selected;
+      });
+    }
+  },
+
+  child: Container(
+    padding: const EdgeInsets.symmetric(
+      horizontal: 14,
+      vertical: 14,
+    ),
+
+    decoration: BoxDecoration(
+      border: Border.all(
+        color: Colors.grey.shade400,
+      ),
+      borderRadius:
+          BorderRadius.circular(12),
+    ),
+
+    child: Row(
+      children: [
+
+        const Icon(
+          Icons.calendar_month,
+          color: Colors.blue,
+        ),
+
+        const SizedBox(width: 10),
+
+        Expanded(
+          child: Text(
+            selectedDate ??
+                "Pilih Tanggal Tracking",
+
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+
+        const Icon(
+          Icons.arrow_drop_down,
+        ),
+      ],
+    ),
+  ),
+);
             },
           ),
 
@@ -506,62 +577,90 @@ return Column(
               ),
 
               ElevatedButton.icon(
-                style:
-                    ElevatedButton.styleFrom(
-                  backgroundColor:
-                      Colors.red,
-                ),
-                onPressed: () async {
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.red,
+  ),
 
-                  final points =
-                      await FirebaseFirestore
-                          .instance
-                          .collection(
-                              'tracks')
-                          .doc(trackId)
-                          .collection(
-                              'sessions')
-                          .doc(selectedDate!)
-                          .collection(
-                              'points')
-                          .get();
+  onPressed: () async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Hapus Riwayat"),
+          content: Text(
+            "Hapus seluruh tracking tanggal $selectedDate ?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text("Batal"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: const Text("Hapus"),
+            ),
+          ],
+        );
+      },
+    );
 
-                  final batch =
-                      FirebaseFirestore
-                          .instance
-                          .batch();
+    if (confirm != true) return;
 
-                  for (var doc
-                      in points.docs) {
-                    batch.delete(
-                        doc.reference);
-                  }
+    final sessionRef = FirebaseFirestore.instance
+        .collection('tracks')
+        .doc(trackId)
+        .collection('sessions')
+        .doc(selectedDate!);
 
-                  await batch.commit();
+    final points =
+        await sessionRef.collection('points').get();
 
-                  if (mounted) {
-                    ScaffoldMessenger.of(
-                            context)
-                        .showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Riwayat berhasil dihapus",
-                        ),
-                      ),
-                    );
-                  }
-                },
-                icon: const Icon(
-                  Icons.delete,
-                  color: Colors.white,
-                ),
-                label: const Text(
-                  "Hapus",
-                  style: TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+    final batch =
+        FirebaseFirestore.instance.batch();
+
+    for (final doc in points.docs) {
+      batch.delete(doc.reference);
+    }
+
+    batch.delete(sessionRef);
+
+    await batch.commit();
+
+    if (!mounted) return;
+
+    setState(() {
+      selectedDate = null;
+    });
+
+    await loadLatestDate();
+
+
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          "Riwayat berhasil dihapus",
+        ),
+      ),
+    );
+  },
+
+  icon: const Icon(
+    Icons.delete,
+    color: Colors.white,
+  ),
+
+  label: const Text(
+    "Hapus",
+    style: TextStyle(
+      color: Colors.white,
+    ),
+  ),
+),
             ],
           ),
         ],

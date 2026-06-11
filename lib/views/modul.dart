@@ -668,9 +668,75 @@ class _ModulePageState extends State<ModulePage> {
   // DETAIL MODUL
   // =========================
   void _showDetailModule(
-    BuildContext context,
-    ModuleModel module,
-  ) {}
+  BuildContext context,
+  ModuleModel module,
+) {
+  showModalBottomSheet(
+    context: context,
+    builder: (context) {
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+
+            Text(
+              module.plate,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            Text("ID Modul : ${module.id}"),
+            Text("Jenis : ${module.type}"),
+            Text("Status : ${module.status}"),
+
+            const SizedBox(height: 24),
+
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+
+              icon: const Icon(
+                Icons.delete,
+                color: Colors.white,
+              ),
+
+              label: const Text(
+                "Hapus Modul",
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+
+              onPressed: () async {
+
+                await _moduleService
+                    .deleteModule(module.id);
+
+                Navigator.pop(context);
+
+                await _loadModules();
+
+                if (!mounted) return;
+
+                SuccessDialog.show(
+                  context,
+                  message:
+                      "Modul berhasil dihapus!",
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
   // =========================
   // MODERN FIELD
